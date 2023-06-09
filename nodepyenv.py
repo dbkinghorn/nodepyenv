@@ -4,7 +4,7 @@ nodepyenv.py creates an isolated no-dependency conda virtual environment using m
 
 It is a small package using only standard python libraries. It would be easy to use with PyInstaller to create a standalone executable with zero dependencies.
 
-nodepyenv can be "compiled" to a standalone executable using PyInstaller with the command:
+nodepyenv.py can be "compiled" to a standalone executable using PyInstaller with the command:
 pyinstaller --onefile nodepyenv.py
 
 It can be run directly with python:

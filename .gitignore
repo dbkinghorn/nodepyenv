@@ -1,7 +1,8 @@
 envs/
 pkgs/
-testing/*
-PyInstaller/*
+testing/
+PyInstaller/
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
