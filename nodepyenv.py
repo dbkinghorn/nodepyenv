@@ -52,6 +52,7 @@ VERSION = "0.1.0"
 MICROMAMBA_BASE_URL = (
     "https://github.com/mamba-org/micromamba-releases/releases/latest/download"
 )
+system = platform.system()
 
 
 # Utility function to extract a value from a yaml file using a regular expression
@@ -65,43 +66,59 @@ def get_value_from_yaml(file_path, key):
     return None
 
 
-def download_micromamba(url: str, micromamba: Path):
+# Download micromamba
+def download_micromamba(mamba_root: Path, system: str):
+    if system == "Windows":
+        url = f"{MICROMAMBA_BASE_URL}/micromamba-win-64"
+        download_path = mamba_root / "micromamba.exe"
+    elif system == "Linux":
+        url = f"{MICROMAMBA_BASE_URL}/micromamba-linux-64"
+        download_path = mamba_root / "micromamba"
+    elif system == "Darwin":
+        url = f"{MICROMAMBA_BASE_URL}/micromamba-osx-arm64"
+        download_path = mamba_root / "micromamba.x"
+    else:
+        print("Unsupported platform")
+        sys.exit(1)
+
     try:
         print(f"Downloading micromamba from {url}")
-        urllib.request.urlretrieve(url, micromamba)
+        micromamba_path, HTTPMessage = urllib.request.urlretrieve(url, download_path)
         # Make micromamba executable
-        micromamba.chmod(0o755)
+        download_path.chmod(0o755)
     except:
         print("Error downloading micromamba")
+        print(HTTPMessage)
         sys.exit(1)
+    return micromamba_path
 
 
 # Check if micromamba is present in the mamba_root.
-def check_micromamba(mamba_root):
-    micromamba = mamba_root / "micromamba"
+# If not, download it.
+def check_micromamba(mamba_root: Path, system: str):
+    if system == "Windows":
+        micromamba = mamba_root / "micromamba.exe"
+    elif system == "Linux":
+        micromamba = mamba_root / "micromamba"
+    elif system == "Darwin":
+        micromamba = mamba_root / "micromamba.x"
+    else:
+        print("Unsupported platform")
+        sys.exit(1)
     if not micromamba.exists():
         print("\nmicromamba not found, downloading micromamba")
         # Download micromamba from the micromamba github release page
-        system = platform.system()
-        if system == "Windows":
-            url = f"{MICROMAMBA_BASE_URL}/micromamba-win-64"
-            micromamba = micromamba.with_suffix(".exe")
-        elif system == "Linux":
-            url = f"{MICROMAMBA_BASE_URL}/micromamba-linux-64"
-        else:
-            print("Unsupported platform")
-            sys.exit(1)
-
-        download_micromamba(url, micromamba)
+        micromamba_path = download_micromamba(mamba_root, system)
     else:
-        print("\nmicromamba found")
-    return micromamba  # Return the path to micromamba
+        print("micromamba found")
+        micromamba_path = micromamba
+    return micromamba_path
 
 
 # Create a conda environment from the environment.yaml file
 def create_env(mamba_root="./", file_name="environment.yaml"):
-    micromamba = check_micromamba(mamba_root)
-    # Check if environment.yaml is present in the current working directory
+    micromamba_path = check_micromamba(mamba_root, system)
+    # Check if environment.yaml is present in the mamba_root directory
     env_file = mamba_root / f"""{file_name}"""
     if not env_file.exists():
         print(f"{env_file} not found. Please create an environment.yaml file")
@@ -110,12 +127,12 @@ def create_env(mamba_root="./", file_name="environment.yaml"):
     env_name = get_value_from_yaml(env_file, "name")
     if env_name is None:
         print(
-            f"{env_file} does not have a name: value entry. Please add a name: value entry to the environment.yaml file"
+            f"{env_file} does not have a name: value entry.\nPlease add a name: value entry to the environment.yaml file\n run with --help for more information."
         )
         sys.exit(1)
 
     print(f"\nCreating conda environment {env_name} from {env_file}")
-    cmd = f"{micromamba} create --yes -r {mamba_root} -f {env_file} "
+    cmd = f"{micromamba_path} env create --yes -r {mamba_root} -f {env_file} "
     process = subprocess.Popen(
         shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -134,14 +151,13 @@ def create_env(mamba_root="./", file_name="environment.yaml"):
     else:
         print(f"\nConda environment {env_name} created successfully")
         if platform.system() == "Windows":
-            env_py = mamba_root / "envs" / env_name / "python.exe"
+            python_path = mamba_root / "envs" / env_name / "python.exe"
         else:
-            env_py = mamba_root / "envs" / env_name / "bin" / "python"  # Linux
+            python_path = mamba_root / "envs" / env_name / "bin" / "python"  # Linux
 
-        print(
-            f"run commands directly with ./micromamba -r . run -n {env_name} <command> \nor use the python executable in the environment with {env_py}"
-        )
-        return env_py
+        # run commands directly with ./micromamba -r . run -n {env_name} <command> \nor
+        print(f"Use the python executable in the environment with {python_path}")
+        return python_path
 
 
 # Main program

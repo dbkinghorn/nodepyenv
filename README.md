@@ -1,6 +1,6 @@
 # nodepyenv
 
-`nodepyenv` (no dep py env) is a small Python package that creates an isolated, no-dependency conda virtual environment using `micromamba`. It uses only standard Python libraries and can be easily used with `PyInstaller` to create a standalone executable with zero dependencies.
+`nodepyenv` (no dep py env) is a small Python package that creates an isolated, no-dependency conda virtual environment using `micromamba`. **It uses only standard Python libraries and can be easily used with `PyInstaller` to create standalone installer/runner executables with zero dependencies.**
 
 ## What `nodepyenv` does
 
