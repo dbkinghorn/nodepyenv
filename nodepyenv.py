@@ -40,6 +40,7 @@ or use micromamba and the python executable in the environment with:
 """
 
 import argparse
+import os
 from pathlib import Path
 import platform
 import re
@@ -86,6 +87,9 @@ def download_micromamba(mamba_root: Path, system: str):
         micromamba_path, HTTPMessage = urllib.request.urlretrieve(url, download_path)
         # Make micromamba executable
         download_path.chmod(0o755)
+
+        print(f"micromamba_path: {micromamba_path}")
+        print(f"download_path: {download_path}")
     except:
         print("Error downloading micromamba")
         print(HTTPMessage)
@@ -109,14 +113,15 @@ def check_micromamba(mamba_root: Path, system: str):
         print("\nmicromamba not found, downloading micromamba")
         # Download micromamba from the micromamba github release page
         micromamba_path = download_micromamba(mamba_root, system)
+        print(f"micromamba downloaded to {micromamba_path}")
     else:
-        print("micromamba found")
         micromamba_path = micromamba
+        print(f"micromamba found at {micromamba_path}")
     return micromamba_path
 
 
 # Create a conda environment from the environment.yaml file
-def create_env(mamba_root="./", file_name="environment.yaml"):
+def create_env(mamba_root, file_name="environment.yaml"):
     micromamba_path = check_micromamba(mamba_root, system)
     # Check if environment.yaml is present in the mamba_root directory
     env_file = mamba_root / f"""{file_name}"""
@@ -134,7 +139,10 @@ def create_env(mamba_root="./", file_name="environment.yaml"):
     print(f"\nCreating conda environment {env_name} from {env_file}")
     cmd = f"{micromamba_path} env create --yes -r {mamba_root} -f {env_file} "
     process = subprocess.Popen(
-        shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        shlex.split(cmd, posix=(os.name == "posix")),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
     while True:
         output = process.stdout.readline()
@@ -184,12 +192,12 @@ if __name__ == "__main__":
         "--mamba_root",
         action="store",
         dest="mamba_root",
-        default="./",
+        default=Path().cwd(),
         help="mamba root directory",
     )
 
     args = parser.parse_args()
-    mamba_root = Path(args.mamba_root)
+    mamba_root = Path(args.mamba_root).absolute()
     envfile = args.envfile
 
     create_env(mamba_root, envfile)
